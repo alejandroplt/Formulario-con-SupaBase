@@ -11,10 +11,49 @@
 </head>
 
 <body>
-    <!-- Botón para abrir el modal -->
+
+    <div class="container mt-4">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>Acción</th>
+                </tr>
+            <tbody>
+                <tr>
+                    <td>Archivo uno</td>
+                    <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal"
+                            data-file-id="1">Descargar 1</button></td>
+                </tr>
+                <tr>
+                    <td>Archivo dos</td>
+                    <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal"
+                            data-file-id="2">Descargar 2</button></td>
+                </tr>
+                <tr>
+                    <td>Archivo tres</td>
+                    <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal"
+                            data-file-id="3">Descargar 3</button></td>
+                </tr>
+                <tr>
+                    <td>Archivo cuatro</td>
+                    <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal"
+                            data-file-id="4">Descargar 4</button></td>
+                </tr>
+                <tr>
+                    <td>Archivo cinco</td>
+                    <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal"
+                            data-file-id="5">Descargar 5</button></td>
+                </tr>
+
+            </tbody>
+            </thead>
+        </table>
+    </div>
+    <!-- Botón para abrir el modal 
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal">
-        Abrir Formulario
-    </button>
+        Descargar
+    </button>-->
 
     <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -37,7 +76,8 @@
                             <label for="institution" class="form-label">Nombre de la institución</label>
                             <input type="text" class="form-control" id="institution" required>
                         </div>
-                        <button type="submit" id="submit" class="btn btn-primary">Descargar</button>
+                        <input type="hidden" id="fileId" name="fileId">
+                        <button type="submit" id="submit" class="btn btn-primary">Continuar</button>
                     </form>
                 </div>
             </div>
@@ -52,6 +92,14 @@
         </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <script>
+        document.querySelectorAll('[data-bs-target="#myModal"]').forEach(button => {
+            button.addEventListener('click', function () {
+                const fileId = this.getAttribute('data-file-id');
+                document.getElementById('fileId').value = fileId;
+            });
+        });
+    </script>
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
         const supabase = createClient('https://ehtjagjztnbyxyjljvgv.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodGphZ2p6dG5ieXh5amxqdmd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ0NDAyNDMsImV4cCI6MjA0MDAxNjI0M30.rFbLoDuWmmUpcrbhoYB83J13SIeDp3UxmYDyCpFgcSI')
@@ -61,23 +109,50 @@
         document.getElementById('myForm').addEventListener('submit', async function (event) {
             event.preventDefault();
 
-            const email = document.getElementById('email').value;
-            const fullName = document.getElementById('fullName').value;
-            const institution = document.getElementById('institution').value;
+            // Deshabilitar temporalmente el botón de envío para evitar múltiples envíos
+            const submitButton = document.getElementById('submit');
+            submitButton.disabled = true;
 
-            const { data, error } = await supabase
-                .from('usuarios')
-                .insert([
-                    { nombreCompleto: fullName, email: email,  institucion: institution }
-                ]);
+            try {
+                const email = document.getElementById('email').value;
+                const fullName = document.getElementById('fullName').value;
+                const institution = document.getElementById('institution').value;
+                const fileId = document.getElementById('fileId').value;
 
-            if (error) {
-                alert('Error al insertar datos:');
-                console.error('Error al insertar datos:', error);
-            } else {
-                alert('Datos insertados');
-                console.log('Datos insertados correctamente:', data);
-                // Aquí puedes agregar el código para descargar el PDF si lo deseas.
+                const { data, error } = await supabase
+                    .from('usuarios')
+                    .insert([
+                        { nombreCompleto: fullName, email: email, institucion: institution }
+                    ]);
+
+                if (error) {
+                    alert('Error al insertar datos:');
+                    console.error('Error al insertar datos:', error);
+                } else {
+                    alert('Datos insertados');
+                    console.log('Datos insertados correctamente:', data);
+
+                    // Descargar archivo PDF según el ID del botón
+                    const link = document.createElement('a');
+                    link.href = `pdfs/${fileId}.pdf`; // Ajusta esta ruta según la ubicación real de tus archivos PDF
+                    link.download = `${fileId}.pdf`;
+                    document.body.appendChild(link); // Agrega el enlace al body para asegurar que se pueda hacer clic
+                    link.click();
+                    document.body.removeChild(link); // Elimina el enlace del body después de la descarga
+
+                    // Limpiar el formulario
+                    document.getElementById('myForm').reset();
+
+                    // Cerrar el modal (asumiendo que estás usando Bootstrap para el modal)
+                    const modalElement = document.getElementById('myModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                }
+            } catch (err) {
+                console.error('Error en el formulario:', err);
+            } finally {
+                // Habilitar el botón de envío nuevamente
+                submitButton.disabled = false;
             }
         });
 
