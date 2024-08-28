@@ -104,7 +104,6 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
         const supabase = createClient('https://ehtjagjztnbyxyjljvgv.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodGphZ2p6dG5ieXh5amxqdmd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ0NDAyNDMsImV4cCI6MjA0MDAxNjI0M30.rFbLoDuWmmUpcrbhoYB83J13SIeDp3UxmYDyCpFgcSI')
 
-        console.log('Supabase Instance: ', supabase)
 
         document.getElementById('myForm').addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -141,7 +140,7 @@
                     document.body.removeChild(link); // Elimina el enlace del body después de la descarga
 
                     // Limpiar el formulario
-                    document.getElementById('myForm').reset();
+                    //document.getElementById('myForm').reset();
 
                     // Cerrar el modal (asumiendo que estás usando Bootstrap para el modal)
                     const modalElement = document.getElementById('myModal');
