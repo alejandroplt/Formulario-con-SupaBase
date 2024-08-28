@@ -76,6 +76,13 @@
                             <label for="institution" class="form-label">Nombre de la institución</label>
                             <input type="text" class="form-control" id="institution" required>
                         </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="privacyCheck">
+                            <label class="form-check-label" for="privacyCheck">
+                                He leído y acepto la <a href="/politica-privacidad" target="_blank">Política de
+                                    Privacidad</a>
+                            </label>
+                        </div>
                         <input type="hidden" id="fileId" name="fileId">
                         <button type="submit" id="submit" class="btn btn-primary">Continuar</button>
                     </form>
@@ -93,11 +100,38 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        let formSubmitted = false;
+
         document.querySelectorAll('[data-bs-target="#myModal"]').forEach(button => {
             button.addEventListener('click', function () {
                 const fileId = this.getAttribute('data-file-id');
                 document.getElementById('fileId').value = fileId;
+
+                // Si el formulario ya fue enviado, deshabilitar los inputs
+                if (formSubmitted) {
+                    document.getElementById('email').disabled = true;
+                    document.getElementById('fullName').disabled = true;
+                    document.getElementById('institution').disabled = true;
+                    document.getElementById('acceptCheckbox').checked = true; // Checkbox activo
+                } else {
+                    document.getElementById('email').disabled = false;
+                    document.getElementById('fullName').disabled = false;
+                    document.getElementById('institution').disabled = false;
+                    // Asegurarse de que el botón "Continuar" esté deshabilitado al abrir el modal
+                    document.getElementById('submit').disabled = true;
+
+                    // Asegurarse de que el checkbox esté desmarcado al abrir el modal
+                    document.getElementById('privacyCheck').checked = false;
+                }
+
+
             });
+        });
+
+        // Habilitar/deshabilitar el botón "Continuar" según el checkbox
+        document.getElementById('privacyCheck').addEventListener('change', function () {
+            const submitButton = document.getElementById('submit');
+            submitButton.disabled = !this.checked;
         });
     </script>
     <script type="module">
@@ -107,7 +141,6 @@
 
         document.getElementById('myForm').addEventListener('submit', async function (event) {
             event.preventDefault();
-
             // Deshabilitar temporalmente el botón de envío para evitar múltiples envíos
             const submitButton = document.getElementById('submit');
             submitButton.disabled = true;
@@ -118,20 +151,20 @@
                 const institution = document.getElementById('institution').value;
                 const fileId = document.getElementById('fileId').value;
 
-                const { data, error } = await supabase
+                // Verificar si el correo ya existe en la base de datos
+                const { data: existingUser, error: fetchError } = await supabase
                     .from('usuarios')
-                    .insert([
-                        { nombreCompleto: fullName, email: email, institucion: institution }
-                    ]);
+                    .select('email')
+                    .eq('email', email)
+                    .maybeSingle(); // Cambiamos single() a maybeSingle() para manejar mejor los resultados nulos
 
-                if (error) {
-                    alert('Error al insertar datos:');
-                    console.error('Error al insertar datos:', error);
-                } else {
-                    alert('Datos insertados');
-                    console.log('Datos insertados correctamente:', data);
+                if (fetchError) {
+                    console.error('Error al verificar el correo:', fetchError);
+                    alert('Hubo un problema al verificar el correo. Intenta nuevamente.');
+                } else if (existingUser) {
+                    console.log('El correo ya existe:', existingUser.email);
+                    // El correo ya existe, por lo tanto, solo se descarga el archivo
 
-                    // Descargar archivo PDF según el ID del botón
                     const link = document.createElement('a');
                     link.href = `pdfs/${fileId}.pdf`; // Ajusta esta ruta según la ubicación real de tus archivos PDF
                     link.download = `${fileId}.pdf`;
@@ -139,14 +172,38 @@
                     link.click();
                     document.body.removeChild(link); // Elimina el enlace del body después de la descarga
 
-                    // Limpiar el formulario
-                    //document.getElementById('myForm').reset();
+                } else {
+                    // El correo no existe, se inserta el nuevo registro
+                    const { data, error } = await supabase
+                        .from('usuarios')
+                        .insert([
+                            { nombreCompleto: fullName, email: email, institucion: institution }
+                        ]);
 
-                    // Cerrar el modal (asumiendo que estás usando Bootstrap para el modal)
-                    const modalElement = document.getElementById('myModal');
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    modal.hide();
+                    if (error) {
+                        alert('Error al insertar datos:');
+                        console.error('Error al insertar datos:', error);
+                    } else {
+                        alert('Datos insertados correctamente.');
+                        console.log('Datos insertados correctamente:', data);
+
+                        // Descargar archivo PDF según el ID del botón
+                        const link = document.createElement('a');
+                        link.href = `pdfs/${fileId}.pdf`; // Ajusta esta ruta según la ubicación real de tus archivos PDF
+                        link.download = `${fileId}.pdf`;
+                        document.body.appendChild(link); // Agrega el enlace al body para asegurar que se pueda hacer clic
+                        link.click();
+                        document.body.removeChild(link); // Elimina el enlace del body después de la descarga
+                    }
                 }
+
+                // Cambiar el estado para que los campos se deshabiliten en el futuro
+                formSubmitted = true;
+                // Cerrar el modal
+                const modalElement = document.getElementById('myModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+
             } catch (err) {
                 console.error('Error en el formulario:', err);
             } finally {
